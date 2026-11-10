@@ -1,0 +1,180 @@
+<main class="weather-shell">
+  <div class="page-wrap">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Skycast home">
+        <span class="brand-mark" aria-hidden="true"><i class="wi wi-day-cloudy"></i></span>
+        <span>skycast<span class="brand-period">.</span></span>
+      </a>
+      <div class="topbar-note"><span class="live-dot"></span> Weather, made simple</div>
+    </header>
+
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">YOUR LITTLE WINDOW TO THE SKY</p>
+      <h1 id="page-title">How’s the weather <span>out there?</span></h1>
+      <p class="intro-copy">Find the forecast for wherever the day takes you.</p>
+
+      <form class="search-form" (ngSubmit)="searchCity()" role="search">
+        <svg class="search-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 5 5"></path></svg>
+        <label class="sr-only" for="city-search">Search for a city</label>
+        <input
+          id="city-search"
+          type="search"
+          name="city"
+          [value]="query"
+          (input)="query = $any($event.target).value"
+          placeholder="Search city or town..."
+          autocomplete="off"
+          [disabled]="isSearching || isLoadingWeather"
+          />
+          <button class="location-button" type="button" (click)="useMyLocation()" [disabled]="isLoadingWeather || isSearching" aria-label="Use my current location">
+            <i class="wi wi-strong-wind" aria-hidden="true"></i>
+            <span>My location</span>
+          </button>
+          <button class="search-button" type="submit" [disabled]="isSearching || isLoadingWeather || !query.trim()">
+            {{ isSearching ? 'Searching...' : 'Search' }}
+          </button>
+        </form>
+
+        @if (locations.length) {
+          <div class="search-results" aria-label="Search results">
+            <p class="results-label">Choose a place</p>
+            @for (location of locations; track trackByLocation($index, location)) {
+              <button
+                class="result-option"
+                type="button"
+                (click)="chooseLocation(location)"
+                [disabled]="isLoadingWeather"
+                >
+                <span class="result-pin" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"></path><circle cx="12" cy="10" r="2.2"></circle></svg></span>
+                <span class="result-name">{{ locationName(location) }}<small>{{ location.country }}</small></span>
+                <span class="result-arrow" aria-hidden="true">→</span>
+              </button>
+            }
+          </div>
+        }
+        @if (searchMessage) {
+          <p class="inline-message" role="status">{{ searchMessage }}</p>
+        }
+      </section>
+
+      <section class="weather-content" aria-live="polite">
+        @if (isLoadingWeather) {
+          <div class="loading-card">
+            <span class="loading-spinner" aria-hidden="true"></span>
+            <p>Looking up the skies...</p>
+          </div>
+        }
+
+        @if (errorMessage && !isLoadingWeather) {
+          <div class="error-card" role="alert">
+            <i class="wi wi-na" aria-hidden="true"></i>
+            <p>{{ errorMessage }}</p>
+          </div>
+        }
+
+        @if (forecast && selectedLocation && !isLoadingWeather) {
+          <section class="current-card" aria-label="Current weather">
+            <div class="current-topline">
+              <div class="place">
+                <span class="place-pin" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"></path><circle cx="12" cy="10" r="2.2"></circle></svg></span>
+                <div>
+                  <h2>{{ locationName(selectedLocation) }}</h2>
+                  <p>{{ selectedLocation.country }}@if (selectedLocation.country) {
+                    <span> · </span>
+                  }{{ formatDate(forecast.current.time.slice(0, 10)) }}</p>
+                </div>
+              </div>
+              <div class="card-actions">
+                <div class="unit-switch" role="group" aria-label="Temperature units">
+                  <button type="button" [class.active]="unit === 'C'" [attr.aria-pressed]="unit === 'C'" (click)="setUnit('C')">°C</button>
+                  <button type="button" [class.active]="unit === 'F'" [attr.aria-pressed]="unit === 'F'" (click)="setUnit('F')">°F</button>
+                </div>
+                <button class="refresh-button" type="button" (click)="refresh()" [disabled]="isLoadingWeather" aria-label="Refresh weather">
+                  <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"></path><path d="M5.5 9a7 7 0 0 1 11.6-2L20 12M4 12l2.9 5a7 7 0 0 0 11.6-2"></path></svg>
+                </button>
+              </div>
+            </div>
+            <div class="current-main">
+              <div class="temperature">{{ formatTemperature(forecast.current.temperature) }}<span>°</span></div>
+              <div class="condition">
+                <i class="wi {{ forecast.current.condition.icon }}" aria-hidden="true"></i>
+                <div>
+                  <p>{{ forecast.current.condition.description }}</p>
+                  <span>Feels like {{ formatTemperature(forecast.current.feelsLike) }}°</span>
+                </div>
+              </div>
+            </div>
+            <div class="weather-details">
+              <div class="detail">
+                <span class="detail-icon humidity"><i class="wi wi-humidity" aria-hidden="true"></i></span>
+                <div><span class="detail-label">Humidity</span><strong>{{ forecast.current.humidity }}<small>%</small></strong></div>
+              </div>
+              <div class="detail">
+                <span class="detail-icon wind"><i class="wi wi-strong-wind" aria-hidden="true"></i></span>
+                <div><span class="detail-label">Wind</span><strong>{{ formatWind(forecast.current.windSpeed) }}<small> {{ windUnit() }}</small></strong></div>
+              </div>
+              <div class="detail">
+                <span class="detail-icon rain"><i class="wi wi-raindrop" aria-hidden="true"></i></span>
+                <div><span class="detail-label">Precipitation</span><strong>{{ forecast.current.precipitation }}<small> mm</small></strong></div>
+              </div>
+              <div class="detail">
+                <span class="detail-icon uv"><i class="wi wi-day-sunny" aria-hidden="true"></i></span>
+                <div><span class="detail-label">UV index</span><strong>{{ forecast.uvIndex | number:'1.0-0' }}<small> today</small></strong></div>
+              </div>
+            </div>
+          </section>
+          <section class="forecast-card hourly-card" aria-labelledby="hourly-title">
+            <div class="section-heading">
+              <div><p class="section-kicker">PLAN AHEAD</p><h2 id="hourly-title">The next few hours</h2></div>
+              <span class="section-note">Today</span>
+            </div>
+            <div class="hourly-list">
+              @for (hour of forecast.hourly; track trackByTime($index, hour)) {
+                <div class="hour-item">
+                  <span class="hour-time">{{ formatHour(hour.time) }}</span>
+                  <i class="wi {{ hour.icon }} hour-icon" aria-hidden="true"></i>
+                  <strong>{{ formatTemperature(hour.temperature) }}°</strong>
+                  <span class="hour-rain"><i class="wi wi-raindrop" aria-hidden="true"></i> {{ hour.precipitationProbability }}%</span>
+                </div>
+              }
+            </div>
+          </section>
+          <section class="forecast-card week-card" aria-labelledby="week-title">
+            <div class="section-heading">
+              <div><p class="section-kicker">A LITTLE LOOK AHEAD</p><h2 id="week-title">7-day forecast</h2></div>
+            </div>
+            <div class="day-list">
+              @for (day of forecast.daily; track trackByDate(i, day); let i = $index) {
+                <div class="day-item">
+                  <span class="day-name">{{ formatDay(day.date, i) }}</span>
+                  <span class="day-condition"><i class="wi {{ day.icon }}" aria-hidden="true"></i><span>{{ day.description }}</span></span>
+                  <span class="day-range"><span>{{ formatTemperature(day.min) }}°</span><strong>{{ formatTemperature(day.max) }}°</strong></span>
+                </div>
+              }
+            </div>
+          </section>
+          <section class="sun-card" aria-label="Today's daylight">
+            <div class="sun-item"><span class="sun-icon"><i class="wi wi-sunrise" aria-hidden="true"></i></span><div><span>Sunrise</span><strong>{{ formatTime(forecast.sunrise) }}</strong></div></div>
+            <div class="sun-item sunset"><span class="sun-icon"><i class="wi wi-sunset" aria-hidden="true"></i></span><div><span>Sunset</span><strong>{{ formatTime(forecast.sunset) }}</strong></div></div>
+          </section>
+        }
+
+        @if (!forecast && !isLoadingWeather && !errorMessage) {
+          <section class="welcome-card" aria-labelledby="welcome-title">
+            <i class="wi wi-day-cloudy welcome-icon" aria-hidden="true"></i>
+            <p class="section-kicker">A FRESH FORECAST IS JUST A SEARCH AWAY</p>
+            <h2 id="welcome-title">Pick a place to get started</h2>
+            <p>Search for a city above, or try one of these:</p>
+            <div class="city-suggestions">
+              @for (city of suggestedCities; track city) {
+                <button type="button" (click)="searchCity(city)" [disabled]="isSearching || isLoadingWeather">{{ city }} <span aria-hidden="true">↗</span></button>
+              }
+            </div>
+            <p class="data-note">Weather data provided by <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a></p>
+          </section>
+        }
+      </section>
+
+      <footer class="footer"><span>Made for curious skies <span aria-hidden="true">✦</span></span><span>Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a></span></footer>
+    </div>
+  </main>
