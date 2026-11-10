@@ -12,6 +12,10 @@ Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app w
 
 Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory. Use `ng build --configuration production` for a production build.
 
+## Deployment
+
+GitHub Actions builds and deploys the production app to GitHub Pages when changes are pushed to `main`. In the repository's **Settings → Pages**, set the build and deployment source to **GitHub Actions**. The app is published at `https://pravallika-yeruva.github.io/weather-app/`.
+
 ## Tests
 
 Run `ng test` to execute the unit tests with [Vitest](https://vitest.dev/).
